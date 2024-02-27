@@ -27,6 +27,7 @@ Deploying a simple Hub & Spoke network with a VM as a router.
 
 | Name | Type |
 |------|------|
+| [azurerm_application_gateway.application_gateway](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/application_gateway) | resource |
 | [azurerm_network_interface.router_nic](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/network_interface) | resource |
 | [azurerm_network_interface.webserver_nic](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/network_interface) | resource |
 | [azurerm_network_interface_security_group_association.router_nsg_assoc](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/network_interface_security_group_association) | resource |
@@ -55,8 +56,9 @@ Deploying a simple Hub & Spoke network with a VM as a router.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
+| <a name="input_enable_app_gw"></a> [enable\_app\_gw](#input\_enable\_app\_gw) | A boolean to determine whether to enable the Application Gateway. | `bool` | `false` | no |
+| <a name="input_enable_webserver"></a> [enable\_webserver](#input\_enable\_webserver) | A boolean to determine whether to enable the Web Server for testing out inbound connectivity. | `bool` | `false` | no |
 | <a name="input_hub_cidr_range"></a> [hub\_cidr\_range](#input\_hub\_cidr\_range) | The CIDR range to provision for the Hub VNet | `string` | `"10.0.8.0/22"` | no |
-| <a name="input_ingress_subnet_name"></a> [ingress\_subnet\_name](#input\_ingress\_subnet\_name) | The name of the subnet to deploy to within the VNET specified in `vnet_name`. | `string` | n/a | yes |
 | <a name="input_ingress_vnet_name"></a> [ingress\_vnet\_name](#input\_ingress\_vnet\_name) | The Ingress VNet that has already been deployed. | `string` | n/a | yes |
 | <a name="input_internal_cidr_range"></a> [internal\_cidr\_range](#input\_internal\_cidr\_range) | The CIDR range to provision for the Internal VNet. | `string` | `"10.0.4.0/22"` | no |
 | <a name="input_internal_num_subnets"></a> [internal\_num\_subnets](#input\_internal\_num\_subnets) | The number of regular subnets to deploy in the VNet. | `number` | `2` | no |
