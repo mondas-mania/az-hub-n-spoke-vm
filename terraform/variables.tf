@@ -30,3 +30,10 @@ variable "hub_cidr_range" {
   type        = string
   default     = "10.0.8.0/22"
 }
+
+variable "router_password" {
+  description = "The password for the Router VM. May be stored as plain text in the state."
+  type        = string
+  default     = null
+  sensitive   = true
+}

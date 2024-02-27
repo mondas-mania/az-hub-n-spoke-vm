@@ -8,6 +8,6 @@ module "hub_vnet" {
 
   vnet_name       = "hub-vnet"
   address_space   = [var.hub_cidr_range]
-  subnet_names    = ["hub-subnet-1"]
+  subnet_names    = ["hub-subnet-0"]
   subnet_prefixes = [var.hub_cidr_range]
 }
