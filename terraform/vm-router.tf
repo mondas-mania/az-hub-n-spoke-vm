@@ -31,7 +31,7 @@ resource "azurerm_network_interface" "router_nic" {
 ###################
 
 resource "azurerm_windows_virtual_machine" "router_vm" {
-  name                = "windows-vm"
+  name                = "router-vm"
   location            = data.azurerm_resource_group.resource_group.location
   resource_group_name = data.azurerm_resource_group.resource_group.name
   size                = "Standard_D2s_v3"
@@ -71,11 +71,25 @@ resource "azurerm_network_interface_security_group_association" "router_nsg_asso
   network_security_group_id = azurerm_network_security_group.router_nsg.id
 }
 
+# resource "azurerm_network_security_rule" "rdp_router" {
+#   name                        = "RDPInternet"
+#   priority                    = 100
+#   direction                   = "Inbound"
+#   access                      = "Allow"
+#   protocol                    = "Tcp"
+#   source_port_range           = "*"
+#   destination_port_range      = "3389"
+#   source_address_prefix       = "*"
+#   destination_address_prefix  = "*"
+#   resource_group_name         = data.azurerm_resource_group.resource_group.name
+#   network_security_group_name = azurerm_network_security_group.router_nsg.name
+# }
+
 #####################
 # Configure Routing #
 #####################
 
-resource "azurerm_virtual_machine_extension" "install_ad" {
+resource "azurerm_virtual_machine_extension" "configure_routing" {
   name                 = "configure_routing"
   virtual_machine_id   = azurerm_windows_virtual_machine.router_vm.id
   publisher            = "Microsoft.Compute"
