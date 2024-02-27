@@ -1,0 +1,92 @@
+trigger:
+  - main
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+- stage: Plan
+  displayName: Terraform Plan
+  jobs:
+  - job: Plan
+    displayName: Plan
+    steps:
+    - task: TerraformTaskV4@4
+      displayName: 'Terraform Init'
+      inputs:
+        provider: 'azurerm'
+        command: 'custom'
+        customCommand: 'init'
+        workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+        commandOptions: '-backend-config=backend.conf'
+        outputTo: 'console'
+        environmentServiceNameAzureRM: 'Mondas Mania Subscription 1 owner'
+
+    - task: TerraformTaskV4@4
+      displayName: 'Terraform Plan'
+      inputs:
+        provider: 'azurerm'
+        command: 'plan'
+        workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+        environmentServiceNameAzureRM: 'Mondas Mania Subscription 1 owner'
+        commandOptions: '-out=$(Build.ArtifactStagingDirectory)/$(Build.BuildId).tfplan'
+
+    - task: TerraformTaskV4@4
+      displayName: 'Show Plan'
+      inputs:
+        provider: 'azurerm'
+        command: 'show'
+        workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+        outputTo: 'console'
+        outputFormat: 'default'
+        environmentServiceNameAzureRM: 'Mondas Mania Subscription 1 owner'
+        commandOptions: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).tfplan'
+
+    - publish: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).tfplan
+      artifact: drop
+
+  - job: Approval
+    dependsOn: Plan
+    pool: server
+    steps:
+    - task: ManualValidation@0
+      displayName: 'Manual Approval'
+      timeoutInMinutes: 5
+      inputs:
+        notifyUsers: ''
+
+
+- stage: Apply
+  displayName: Terraform Apply
+  dependsOn: Plan
+  condition: succeeded()
+
+  jobs:
+  - deployment: Apply
+    displayName: Apply
+    environment: 'development'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: self
+
+            - task: TerraformTaskV4@4
+              displayName: 'Terraform Init'
+              inputs:
+                provider: 'azurerm'
+                command: 'custom'
+                customCommand: 'init'
+                workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+                commandOptions: '-backend-config=backend.conf'
+                outputTo: 'console'
+                environmentServiceNameAzureRM: 'Mondas Mania Subscription 1 owner'
+
+            - task: TerraformTaskV4@4
+              displayName: 'Terraform Apply'
+              inputs:
+                provider: 'azurerm'
+                command: 'apply'
+                workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+                environmentServiceNameAzureRM: 'Mondas Mania Subscription 1 owner'
+                commandOptions: '-auto-approve $(Pipeline.Workspace)/drop/$(Build.BuildId).tfplan'
