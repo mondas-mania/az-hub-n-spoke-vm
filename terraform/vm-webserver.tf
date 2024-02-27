@@ -1,18 +1,9 @@
-############
-# Password #
-############
-
-# resource "azurerm_key_vault_secret" "windows_password" {
-#   name         = "windows-vm-password"
-#   value        = var.windows_password
-#   key_vault_id = azurerm_key_vault.vm_key_vault.id
-# }
-
 #######
 # NIC #
 #######
 
 resource "azurerm_network_interface" "webserver_nic" {
+  count               = var.enable_webserver ? 1 : 0
   name                = "webserver-nic"
   location            = data.azurerm_resource_group.resource_group.location
   resource_group_name = data.azurerm_resource_group.resource_group.name
@@ -29,6 +20,7 @@ resource "azurerm_network_interface" "webserver_nic" {
 ###################
 
 resource "azurerm_windows_virtual_machine" "webserver_vm" {
+  count               = var.enable_webserver ? 1 : 0
   name                = "webserver-vm"
   location            = data.azurerm_resource_group.resource_group.location
   resource_group_name = data.azurerm_resource_group.resource_group.name
@@ -36,7 +28,7 @@ resource "azurerm_windows_virtual_machine" "webserver_vm" {
   admin_username      = "adminuser"
   admin_password      = var.router_password
   network_interface_ids = [
-    azurerm_network_interface.webserver_nic.id,
+    azurerm_network_interface.webserver_nic[0].id,
   ]
 
   patch_mode = "AutomaticByPlatform"
@@ -59,28 +51,31 @@ resource "azurerm_windows_virtual_machine" "webserver_vm" {
 #######
 
 resource "azurerm_network_security_group" "webserver_nsg" {
+  count               = var.enable_webserver ? 1 : 0
   name                = "webserver-vm-router"
   location            = data.azurerm_resource_group.resource_group.location
   resource_group_name = data.azurerm_resource_group.resource_group.name
 }
 
 resource "azurerm_network_interface_security_group_association" "webserver_nsg_assoc" {
-  network_interface_id      = azurerm_network_interface.webserver_nic.id
-  network_security_group_id = azurerm_network_security_group.webserver_nsg.id
+  count                     = var.enable_webserver ? 1 : 0
+  network_interface_id      = azurerm_network_interface.webserver_nic[0].id
+  network_security_group_id = azurerm_network_security_group.webserver_nsg[0].id
 }
 
 resource "azurerm_network_security_rule" "http_windows" {
-  name                        = "HTTPInternet"
+  count                       = var.enable_webserver ? 1 : 0
+  name                        = "HTTPInternalVNets"
   priority                    = 101
   direction                   = "Inbound"
   access                      = "Allow"
   protocol                    = "Tcp"
-  source_port_range           = "*"
+  source_port_range           = "80"
   destination_port_range      = "80"
-  source_address_prefix       = "*"
+  source_address_prefix       = "10.0.0.0/8"
   destination_address_prefix  = "*"
   resource_group_name         = data.azurerm_resource_group.resource_group.name
-  network_security_group_name = azurerm_network_security_group.webserver_nsg.name
+  network_security_group_name = azurerm_network_security_group.webserver_nsg[0].name
 }
 
 #######################
@@ -88,8 +83,9 @@ resource "azurerm_network_security_rule" "http_windows" {
 #######################
 
 resource "azurerm_virtual_machine_extension" "web_server_install" {
+  count                      = var.enable_webserver ? 1 : 0
   name                       = "configure-wsi"
-  virtual_machine_id         = azurerm_windows_virtual_machine.webserver_vm.id
+  virtual_machine_id         = azurerm_windows_virtual_machine.webserver_vm[0].id
   publisher                  = "Microsoft.Compute"
   type                       = "CustomScriptExtension"
   type_handler_version       = "1.9"

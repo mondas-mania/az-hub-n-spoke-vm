@@ -8,11 +8,6 @@ variable "ingress_vnet_name" {
   type        = string
 }
 
-variable "ingress_subnet_name" {
-  description = "The name of the subnet to deploy to within the VNET specified in `vnet_name`."
-  type        = string
-}
-
 variable "internal_cidr_range" {
   description = "The CIDR range to provision for the Internal VNet."
   type        = string
@@ -36,4 +31,16 @@ variable "router_password" {
   type        = string
   default     = null
   sensitive   = true
+}
+
+variable "enable_app_gw" {
+  description = "A boolean to determine whether to enable the Application Gateway."
+  type        = bool
+  default     = false
+}
+
+variable "enable_webserver" {
+  description = "A boolean to determine whether to enable the Web Server for testing out inbound connectivity."
+  type        = bool
+  default     = false
 }
