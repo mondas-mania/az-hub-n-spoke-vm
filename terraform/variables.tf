@@ -44,3 +44,9 @@ variable "enable_webserver" {
   type        = bool
   default     = false
 }
+
+variable "enable_router_vm" {
+  description = "A boolean to determine whether to enable the Router VM in the Hub VNet."
+  type        = bool
+  default     = false
+}

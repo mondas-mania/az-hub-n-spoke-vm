@@ -36,6 +36,8 @@ Deploying a simple Hub & Spoke network with a VM as a router.
 | [azurerm_network_security_group.webserver_nsg](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/network_security_group) | resource |
 | [azurerm_network_security_rule.http_windows](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/network_security_rule) | resource |
 | [azurerm_public_ip.app_gateway_pip](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/public_ip) | resource |
+| [azurerm_route.ingress_to_internal](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/route) | resource |
+| [azurerm_route.internal_to_ingress](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/route) | resource |
 | [azurerm_route_table.ingress_to_internal](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/route_table) | resource |
 | [azurerm_route_table.internal_to_ingress](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/route_table) | resource |
 | [azurerm_subnet_route_table_association.ingress_rtb](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet_route_table_association) | resource |
@@ -57,6 +59,7 @@ Deploying a simple Hub & Spoke network with a VM as a router.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_enable_app_gw"></a> [enable\_app\_gw](#input\_enable\_app\_gw) | A boolean to determine whether to enable the Application Gateway. | `bool` | `false` | no |
+| <a name="input_enable_router_vm"></a> [enable\_router\_vm](#input\_enable\_router\_vm) | A boolean to determine whether to enable the Router VM in the Hub VNet. | `bool` | `false` | no |
 | <a name="input_enable_webserver"></a> [enable\_webserver](#input\_enable\_webserver) | A boolean to determine whether to enable the Web Server for testing out inbound connectivity. | `bool` | `false` | no |
 | <a name="input_hub_cidr_range"></a> [hub\_cidr\_range](#input\_hub\_cidr\_range) | The CIDR range to provision for the Hub VNet | `string` | `"10.0.8.0/22"` | no |
 | <a name="input_ingress_vnet_name"></a> [ingress\_vnet\_name](#input\_ingress\_vnet\_name) | The Ingress VNet that has already been deployed. | `string` | n/a | yes |
