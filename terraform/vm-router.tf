@@ -13,6 +13,7 @@
 #######
 
 resource "azurerm_network_interface" "router_nic" {
+  count               = var.enable_router_vm ? 1 : 0
   name                = "router-nic"
   location            = data.azurerm_resource_group.resource_group.location
   resource_group_name = data.azurerm_resource_group.resource_group.name
@@ -31,6 +32,7 @@ resource "azurerm_network_interface" "router_nic" {
 ###################
 
 resource "azurerm_windows_virtual_machine" "router_vm" {
+  count               = var.enable_router_vm ? 1 : 0
   name                = "router-vm"
   location            = data.azurerm_resource_group.resource_group.location
   resource_group_name = data.azurerm_resource_group.resource_group.name
@@ -38,7 +40,7 @@ resource "azurerm_windows_virtual_machine" "router_vm" {
   admin_username      = "adminuser"
   admin_password      = var.router_password
   network_interface_ids = [
-    azurerm_network_interface.router_nic.id,
+    azurerm_network_interface.router_nic[0].id,
   ]
 
   patch_mode = "AutomaticByPlatform"
@@ -61,14 +63,16 @@ resource "azurerm_windows_virtual_machine" "router_vm" {
 #######
 
 resource "azurerm_network_security_group" "router_nsg" {
+  count               = var.enable_router_vm ? 1 : 0
   name                = "router-vm-router"
   location            = data.azurerm_resource_group.resource_group.location
   resource_group_name = data.azurerm_resource_group.resource_group.name
 }
 
 resource "azurerm_network_interface_security_group_association" "router_nsg_assoc" {
-  network_interface_id      = azurerm_network_interface.router_nic.id
-  network_security_group_id = azurerm_network_security_group.router_nsg.id
+  count                     = var.enable_router_vm ? 1 : 0
+  network_interface_id      = azurerm_network_interface.router_nic[0].id
+  network_security_group_id = azurerm_network_security_group.router_nsg[0].id
 }
 
 #####################
@@ -76,8 +80,9 @@ resource "azurerm_network_interface_security_group_association" "router_nsg_asso
 #####################
 
 resource "azurerm_virtual_machine_extension" "configure_routing" {
+  count                = var.enable_router_vm ? 1 : 0
   name                 = "configure_routing"
-  virtual_machine_id   = azurerm_windows_virtual_machine.router_vm.id
+  virtual_machine_id   = azurerm_windows_virtual_machine.router_vm[0].id
   publisher            = "Microsoft.Compute"
   type                 = "CustomScriptExtension"
   type_handler_version = "1.9"
