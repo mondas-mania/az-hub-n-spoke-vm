@@ -64,7 +64,7 @@ resource "azurerm_windows_virtual_machine" "router_vm" {
 
 resource "azurerm_network_security_group" "router_nsg" {
   count               = var.enable_router_vm ? 1 : 0
-  name                = "router-vm-router"
+  name                = "router-vm-nsg"
   location            = data.azurerm_resource_group.resource_group.location
   resource_group_name = data.azurerm_resource_group.resource_group.name
 }
