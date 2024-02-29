@@ -1,3 +1,6 @@
+# Mac thumbnails
+**/.DS_Store
+
 # Local .terraform directories
 **/.terraform/*
 
