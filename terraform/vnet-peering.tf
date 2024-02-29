@@ -1,25 +1,28 @@
-##################
-# Hub to Ingress #
-##################
+########################
+# Hub to Spoke Peering #
+########################
 
-resource "azurerm_virtual_network_peering" "hub_to_ingress" {
-  name                      = "hub-to-ingress-peering"
+resource "azurerm_virtual_network_peering" "hub_to_spoke" {
+  for_each = var.internal_vnets_config
+
+  name                      = "hub-to-${each.key}-peering"
   resource_group_name       = data.azurerm_resource_group.resource_group.name
   virtual_network_name      = module.hub_vnet.vnet_name
-  remote_virtual_network_id = data.azurerm_virtual_network.ingress_vpc.id
+  remote_virtual_network_id = module.spoke_vnet[each.key].vnet_id
 
   allow_virtual_network_access = true
   allow_forwarded_traffic      = true
 
   triggers = {
-    remote_address_space = join(",", data.azurerm_virtual_network.ingress_vpc.address_space)
+    remote_address_space = join(",", module.spoke_vnet[each.key].vnet_address_space)
   }
 }
 
-resource "azurerm_virtual_network_peering" "ingress_to_hub" {
-  name                      = "ingress-to-hub-peering"
+resource "azurerm_virtual_network_peering" "spoke_to_hub" {
+  for_each                  = var.internal_vnets_config
+  name                      = "${each.key}-to-hub-peering"
   resource_group_name       = data.azurerm_resource_group.resource_group.name
-  virtual_network_name      = data.azurerm_virtual_network.ingress_vpc.name
+  virtual_network_name      = module.spoke_vnet[each.key].vnet_name
   remote_virtual_network_id = module.hub_vnet.vnet_id
 
   allow_virtual_network_access = true
@@ -29,39 +32,5 @@ resource "azurerm_virtual_network_peering" "ingress_to_hub" {
     remote_address_space = join(",", module.hub_vnet.vnet_address_space)
   }
 
-  depends_on = [azurerm_virtual_network_peering.hub_to_ingress]
-}
-
-###################
-# Hub to Internal #
-###################
-
-resource "azurerm_virtual_network_peering" "hub_to_internal" {
-  name                      = "hub-to-internal-peering"
-  resource_group_name       = data.azurerm_resource_group.resource_group.name
-  virtual_network_name      = module.hub_vnet.vnet_name
-  remote_virtual_network_id = module.internal_vnet.vnet_id
-
-  allow_virtual_network_access = true
-  allow_forwarded_traffic      = true
-
-  triggers = {
-    remote_address_space = join(",", module.internal_vnet.vnet_address_space)
-  }
-}
-
-resource "azurerm_virtual_network_peering" "internal_to_hub" {
-  name                      = "internal-to-hub-peering"
-  resource_group_name       = data.azurerm_resource_group.resource_group.name
-  virtual_network_name      = module.internal_vnet.vnet_name
-  remote_virtual_network_id = module.hub_vnet.vnet_id
-
-  allow_virtual_network_access = true
-  allow_forwarded_traffic      = true
-
-  triggers = {
-    remote_address_space = join(",", module.hub_vnet.vnet_address_space)
-  }
-
-  depends_on = [azurerm_virtual_network_peering.hub_to_internal]
+  depends_on = [azurerm_virtual_network_peering.hub_to_spoke]
 }

@@ -1,14 +1,10 @@
 locals {
-  num_new_bits = ceil(log(var.internal_num_subnets, 2))
-
-  private_subnets = [for i in range(var.internal_num_subnets) :
-    {
-      name = "private-subnet-${i}"
-      cidr = cidrsubnet(var.internal_cidr_range, local.num_new_bits, i),
+  subnets_config = {
+    for name, internal_vnet in var.internal_vnets_config : name => {
+      cidr_range = internal_vnet.cidr_range
+      subnets = { for i in range(internal_vnet.num_subnets) :
+        "private-subnet-${i}" => cidrsubnet(internal_vnet.cidr_range, ceil(log(internal_vnet.num_subnets, 2)), i)
+      }
     }
-  ]
-
-  internal_subnets         = local.private_subnets
-  internal_subnet_names    = [for subnet in local.internal_subnets : subnet.name]
-  internal_subnet_prefixes = [for subnet in local.internal_subnets : subnet.cidr]
+  }
 }
