@@ -75,7 +75,7 @@ resource "azurerm_network_security_rule" "http_windows" {
   direction                   = "Inbound"
   access                      = "Allow"
   protocol                    = "Tcp"
-  source_port_range           = "80"
+  source_port_range           = "*" # Azure portal recommends * for source port, filtering should be done at destination level
   destination_port_range      = "80"
   source_address_prefix       = "10.0.0.0/8"
   destination_address_prefix  = "*"

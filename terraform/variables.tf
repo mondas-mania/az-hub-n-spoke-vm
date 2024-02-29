@@ -6,10 +6,10 @@ variable "resource_group_name" {
 variable "internal_vnets_config" {
   description = "A map of configuration for internal VNets to deploy and connect to the hub."
   type = map(object({
-    cidr_range  = string
-    num_subnets = number
-    deploy_wsi  = optional(bool, false)
-    # enable_bastion = optional(bool, false)
+    cidr_range     = string
+    num_subnets    = number
+    deploy_wsi     = optional(bool, false)
+    enable_bastion = optional(bool, false)
     app_gw_config = optional(object({
       deploy_app_gw = optional(bool, false)
       target_vnets  = optional(list(string), [])
