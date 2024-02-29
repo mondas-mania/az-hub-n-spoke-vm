@@ -3,8 +3,7 @@
 #########################
 
 resource "azurerm_route_table" "spoke_to_hub" {
-  for_each = var.internal_vnets_config
-
+  for_each                      = var.internal_vnets_config
   name                          = "${each.key}-to-hub-route-table"
   location                      = data.azurerm_resource_group.resource_group.location
   resource_group_name           = data.azurerm_resource_group.resource_group.name

@@ -12,7 +12,7 @@ variable "internal_vnets_config" {
     # enable_bastion = optional(bool, false)
     app_gw_config = optional(object({
       deploy_app_gw = optional(bool, false)
-      target_vnet   = optional(list(string), [])
+      target_vnets  = optional(list(string), [])
     }), {})
   }))
 }
