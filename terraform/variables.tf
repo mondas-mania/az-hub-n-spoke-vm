@@ -8,6 +8,15 @@ variable "ingress_vnet_name" {
   type        = string
 }
 
+variable "internal_vnets_config" {
+  description = "A map of configuration for internal VNets to deploy and connect to the hub."
+  type = map(object({
+    cidr_range  = string
+    num_subnets = number
+    deploy_wsi  = optional(bool, false)
+  }))
+}
+
 variable "internal_cidr_range" {
   description = "The CIDR range to provision for the Internal VNet."
   type        = string
@@ -15,7 +24,7 @@ variable "internal_cidr_range" {
 }
 
 variable "internal_num_subnets" {
-  description = "The number of regular subnets to deploy in the VNet."
+  description = "The number of regular subnets to deploy in each VNet."
   type        = number
   default     = 2
 }

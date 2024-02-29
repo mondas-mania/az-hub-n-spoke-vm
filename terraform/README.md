@@ -64,7 +64,8 @@ Deploying a simple Hub & Spoke network with a VM as a router.
 | <a name="input_hub_cidr_range"></a> [hub\_cidr\_range](#input\_hub\_cidr\_range) | The CIDR range to provision for the Hub VNet | `string` | `"10.0.8.0/22"` | no |
 | <a name="input_ingress_vnet_name"></a> [ingress\_vnet\_name](#input\_ingress\_vnet\_name) | The Ingress VNet that has already been deployed. | `string` | n/a | yes |
 | <a name="input_internal_cidr_range"></a> [internal\_cidr\_range](#input\_internal\_cidr\_range) | The CIDR range to provision for the Internal VNet. | `string` | `"10.0.4.0/22"` | no |
-| <a name="input_internal_num_subnets"></a> [internal\_num\_subnets](#input\_internal\_num\_subnets) | The number of regular subnets to deploy in the VNet. | `number` | `2` | no |
+| <a name="input_internal_num_subnets"></a> [internal\_num\_subnets](#input\_internal\_num\_subnets) | The number of regular subnets to deploy in each VNet. | `number` | `2` | no |
+| <a name="input_internal_vnets_config"></a> [internal\_vnets\_config](#input\_internal\_vnets\_config) | A map of configuration for internal VNets to deploy and connect to the hub. | <pre>map(object({<br>    cidr_range  = string<br>    num_subnets = number<br>    deploy_wsi  = optional(bool, false)<br>  }))</pre> | n/a | yes |
 | <a name="input_resource_group_name"></a> [resource\_group\_name](#input\_resource\_group\_name) | The name of the resource group to deploy to. | `string` | n/a | yes |
 | <a name="input_router_password"></a> [router\_password](#input\_router\_password) | The password for the Router VM. May be stored as plain text in the state. | `string` | `null` | no |
 
