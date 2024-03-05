@@ -7,7 +7,7 @@ Deploying a simple Hub & Spoke network with a VM as a router.
 The below `.tfvars` will deploy four VNets:
 
 - A hub VNet `hub-vnet` using address space `10.0.0.0/22` with one subnet which will house a Windows VM configured for transitive routing. This will be the hub of the hub and spoke network.
-- An ingress VNet `ingress-vnet` using address space `10.0.4.0/22` with three subnets. This will house the Application Gateway which will point to web servers deployed in `internal-vnet-0` and `internal-vnet-1`. This is peered to and from `hub-vnet`.
+- An ingress VNet `ingress-vnet` using address space `10.0.4.0/22` with two private subnets and a dedicated subnet for an Application Gateway. This will house the Application Gateway which will point to web servers deployed in `internal-vnet-0` and `internal-vnet-1`. This is peered to and from `hub-vnet`.
 - An internal VNet `internal-vnet-0` using address space `10.0.8.0/22` with two regular subnets and an `AzureBastionSubnet` subnet. This will house a single web server and a bastion host. This is peered to and from `hub-vnet`.
 - An internal VNet `internal-vnet-1` using address space `10.0.12.0/22` with two subnets. This will house a single web server. This is peered to and from `hub-vnet`.
 
