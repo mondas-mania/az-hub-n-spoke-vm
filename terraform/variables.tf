@@ -44,3 +44,12 @@ variable "enable_router_vm" {
   type        = bool
   default     = false
 }
+
+variable "enable_central_bastion" {
+  description = <<EOT
+  A boolean to determine whether to enable a Bastion host in the hub virtual network.
+  This Bastion will be able to connect to VMs in any spoke VNet.
+  EOT
+  type        = bool
+  default     = false
+}
