@@ -10,6 +10,7 @@ variable "internal_vnets_config" {
     num_subnets    = number
     deploy_wsi     = optional(bool, false)
     enable_bastion = optional(bool, false)
+    enable_nat_gw  = optional(bool, false)
     app_gw_config = optional(object({
       deploy_app_gw = optional(bool, false)
       target_vnets  = optional(list(string), [])
