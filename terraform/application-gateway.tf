@@ -9,12 +9,19 @@ locals {
   url_path_map_name              = "url-path-map"
   path_rule_name                 = "path-rule"
 
+  rewrite_rule_set_root_name = "rewrite-to-root-set"
+  rewrite_rule_root_name     = "rewrite-to-root-rule"
+
   app_gws = {
     for vnet_name, vnet_config in var.internal_vnets_config : vnet_name => {
       name                      = "app-gateway-${vnet_name}"
       listener_name             = local.listener_name
       request_routing_rule_name = local.request_routing_rule_name
       url_path_map_name         = local.url_path_map_name
+
+      rewrite_rule_set_root_name = local.rewrite_rule_set_root_name
+      rewrite_rule_root_name     = local.rewrite_rule_root_name
+
       paths = merge({
         "/" = {
           ip_addresses              = [for target in vnet_config.app_gw_config.target_vnets : azurerm_windows_virtual_machine.webserver_vm[target].private_ip_address]
@@ -25,7 +32,7 @@ locals {
         }
         },
         {
-          for target in vnet_config.app_gw_config.target_vnets : "/${target}/" => {
+          for target in vnet_config.app_gw_config.target_vnets : "/${target}" => {
             ip_addresses              = [azurerm_windows_virtual_machine.webserver_vm[target].private_ip_address]
             http_setting_name         = "${local.http_setting_name}-${target}"
             request_routing_rule_name = "${local.request_routing_rule_name}-${target}"
@@ -108,6 +115,21 @@ resource "azurerm_application_gateway" "application_gateway" {
     url_path_map_name  = each.value.url_path_map_name
   }
 
+  rewrite_rule_set {
+    name = each.value.rewrite_rule_set_root_name
+
+    rewrite_rule {
+      name          = each.value.rewrite_rule_root_name
+      rule_sequence = 1
+
+      url {
+        path       = "/"
+        components = "path_only"
+        reroute    = false
+      }
+    }
+  }
+
   url_path_map {
     name                               = each.value.url_path_map_name
     default_backend_address_pool_name  = each.value.paths["/"].backend_address_pool_name
@@ -120,6 +142,7 @@ resource "azurerm_application_gateway" "application_gateway" {
         paths                      = [path_rule.key]
         backend_address_pool_name  = path_rule.value.backend_address_pool_name
         backend_http_settings_name = path_rule.value.http_setting_name
+        rewrite_rule_set_name      = each.value.rewrite_rule_set_root_name
       }
     }
   }
