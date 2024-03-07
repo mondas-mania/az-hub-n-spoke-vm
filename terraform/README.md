@@ -6,10 +6,10 @@ Deploying a simple Hub & Spoke network with a VM as a router.
 
 The below `.tfvars` will deploy four VNets:
 
-- A hub VNet `hub-vnet` using address space `10.0.0.0/22` with one subnet which will house a Windows VM configured for transitive routing. This will be the hub of the hub and spoke network.
+- A hub VNet `hub-vnet` using address space `10.0.0.0/22` with two subnets. One AzureBastionSubnet is used for a central bastion host that can connect to VMs in peered VNets and one regular subnet is used to house a Windows VM configured for transitive routing. This will be the hub of the hub and spoke network.
 - An ingress VNet `ingress-vnet` using address space `10.0.4.0/22` with two private subnets and a dedicated subnet for an Application Gateway. This will house the Application Gateway which will point to web servers deployed in `internal-vnet-0` and `internal-vnet-1`. This is peered to and from `hub-vnet`.
-- An internal VNet `internal-vnet-0` using address space `10.0.8.0/22` with two regular subnets and an `AzureBastionSubnet` subnet. This will house a single web server and a bastion host. This is peered to and from `hub-vnet`.
-- An internal VNet `internal-vnet-1` using address space `10.0.12.0/22` with two subnets. This will house a single web server. This is peered to and from `hub-vnet`.
+- An internal VNet `internal-vnet-0` using address space `10.0.8.0/22` with two regular subnets. This will house a single web server. This is peered to and from `hub-vnet`.
+- An internal VNet `internal-vnet-1` using address space `10.0.12.0/22` with two regular subnets. This will house a single web server. This is peered to and from `hub-vnet`.
 
 The non-hub VNets all have routes which will route their local traffic within themselves, and all other traffic towards `supernet_cidr_range` (`10.0.0.0/8`) will be routed towards the router VM in `hub-vnet`.
 
@@ -22,8 +22,9 @@ A diagram of this configuration is as below:
 ```
 resource_group_name = "Sandbox_RG"
 
-enable_router_vm = true
-router_password  = "MyS@fePassw0rd"
+enable_router_vm       = true
+enable_central_bastion = true
+router_password        = "MyS@fePassw0rd"
 
 hub_cidr_range      = "10.0.0.0/22"
 supernet_cidr_range = "10.0.0.0/8"
@@ -46,7 +47,7 @@ internal_vnets_config = {
     cidr_range     = "10.0.8.0/22"
     num_subnets    = 2
     deploy_wsi     = true
-    enable_bastion = true
+    enable_bastion = false
   }
 
   "internal-vnet-1" = {
@@ -109,6 +110,7 @@ internal_vnets_config = {
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
+| <a name="input_enable_central_bastion"></a> [enable\_central\_bastion](#input\_enable\_central\_bastion) | A boolean to determine whether to enable a Bastion host in the hub virtual network.<br>  This Bastion will be able to connect to VMs in any spoke VNet. | `bool` | `false` | no |
 | <a name="input_enable_router_vm"></a> [enable\_router\_vm](#input\_enable\_router\_vm) | A boolean to determine whether to enable the Router VM in the Hub VNet. | `bool` | `false` | no |
 | <a name="input_hub_cidr_range"></a> [hub\_cidr\_range](#input\_hub\_cidr\_range) | The CIDR range to provision for the Hub VNet | `string` | `"10.0.0.0/22"` | no |
 | <a name="input_internal_vnets_config"></a> [internal\_vnets\_config](#input\_internal\_vnets\_config) | A map of configuration for internal VNets to deploy and connect to the hub. | <pre>map(object({<br>    cidr_range     = string<br>    num_subnets    = number<br>    deploy_wsi     = optional(bool, false)<br>    enable_bastion = optional(bool, false)<br>    app_gw_config = optional(object({<br>      deploy_app_gw = optional(bool, false)<br>      target_vnets  = optional(list(string), [])<br>    }), {})<br>  }))</pre> | n/a | yes |

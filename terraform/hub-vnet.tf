@@ -7,7 +7,7 @@ module "hub_vnet" {
   use_for_each        = true
 
   vnet_name       = "hub-vnet"
-  address_space   = [var.hub_cidr_range]
-  subnet_names    = ["hub-subnet-0"]
-  subnet_prefixes = [var.hub_cidr_range]
+  address_space   = [local.hub_subnets_config.cidr_range]
+  subnet_names    = [for name, prefix in local.hub_subnets_config.subnets : name]
+  subnet_prefixes = [for name, prefix in local.hub_subnets_config.subnets : prefix]
 }

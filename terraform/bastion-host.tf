@@ -1,5 +1,8 @@
 locals {
-  bastion_hosts = toset([for vnet_name, vnet_config in var.internal_vnets_config : vnet_name if vnet_config.enable_bastion])
+  bastion_hosts = merge(
+    { for vnet_name, vnet_config in var.internal_vnets_config : vnet_name => module.spoke_vnet[vnet_name].vnet_subnets_name_id["AzureBastionSubnet"] if vnet_config.enable_bastion },
+    var.enable_central_bastion ? { "hub-vnet" = module.hub_vnet.vnet_subnets_name_id["AzureBastionSubnet"] } : {}
+  )
 }
 
 resource "azurerm_public_ip" "bastion_pip" {
@@ -19,7 +22,7 @@ resource "azurerm_bastion_host" "bastion_host" {
 
   ip_configuration {
     name                 = "configuration"
-    subnet_id            = module.spoke_vnet[each.key].vnet_subnets_name_id["AzureBastionSubnet"]
+    subnet_id            = each.value
     public_ip_address_id = azurerm_public_ip.bastion_pip[each.key].id
   }
 }
