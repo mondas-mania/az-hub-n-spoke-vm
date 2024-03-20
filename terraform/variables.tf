@@ -54,3 +54,12 @@ variable "enable_central_bastion" {
   type        = bool
   default     = false
 }
+
+variable "enable_central_nat_gateay" {
+  description = <<EOT
+  A boolean to determine whether to create a NAT Gateway in the hub virtual network.
+  This will be used by all spoke VNets without dedicated NAT Gateways.
+  EOT
+  type        = bool
+  default     = false
+}

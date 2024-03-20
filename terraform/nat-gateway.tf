@@ -1,9 +1,15 @@
 locals {
-  nat_gws = {
+  spoke_nat_gws = {
     for vnet_name, vnet_config in var.internal_vnets_config : vnet_name => {
       for subnet_name, subnet_id in module.spoke_vnet[vnet_name].vnet_subnets_name_id : subnet_name => subnet_id if subnet_name != "AzureBastionSubnet"
     } if vnet_config.enable_nat_gw
   }
+
+  central_nat_gw = var.enable_central_nat_gateay ? {
+    "hub-vnet" = { for subnet_name, subnet_id in module.hub_vnet.vnet_subnets_name_id : subnet_name => subnet_id if subnet_name != "AzureBastionSubnet" }
+  } : {}
+
+  nat_gws = merge(local.spoke_nat_gws, local.central_nat_gw)
 
   nat_gws_flattened = merge(
     [for vnet_name, subnets in local.nat_gws : { for subnet_name, subnet_id in subnets : "${vnet_name}/${subnet_name}" => { vnet_name = vnet_name, subnet_name = subnet_name, subnet_id = subnet_id } }]...

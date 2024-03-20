@@ -1,5 +1,18 @@
 locals {
-  web_server_vnets = toset([for vnet_name, vnet_config in var.internal_vnets_config : vnet_name if vnet_config.deploy_wsi])
+  # web_server_vnets = toset([for vnet_name, vnet_config in var.internal_vnets_config : vnet_name if vnet_config.deploy_wsi])
+  # "wsi-${substr(each.value, 0, 3)}-${element(split("-", each.value), length(split("-", each.value)) - 1)}"
+  web_server_vnets = { for vnet_name, vnet_config in var.internal_vnets_config : vnet_name => "wsi-${substr(vnet_name, 0, 3)}-${element(split("-", vnet_name), length(split("-", vnet_name)) - 1)}" if vnet_config.deploy_wsi }
+}
+
+######################
+# Key Vault Password #
+######################
+
+resource "azurerm_key_vault_secret" "webserver_password" {
+  for_each     = local.web_server_vnets
+  name         = "${each.value}-password"
+  value        = var.router_password
+  key_vault_id = azurerm_key_vault.vm_key_vault.id
 }
 
 #######
@@ -8,13 +21,13 @@ locals {
 
 resource "azurerm_network_interface" "webserver_nic" {
   for_each            = local.web_server_vnets
-  name                = "webserver-nic-${each.value}"
+  name                = "webserver-nic-${each.key}"
   location            = data.azurerm_resource_group.resource_group.location
   resource_group_name = data.azurerm_resource_group.resource_group.name
 
   ip_configuration {
     name      = "internal"
-    subnet_id = module.spoke_vnet[each.value].vnet_subnets_name_id["private-subnet-0"]
+    subnet_id = module.spoke_vnet[each.key].vnet_subnets_name_id["private-subnet-0"]
     # will fail if num_subnets is set to 0, but that's a useless use case
     private_ip_address_allocation = "Dynamic"
   }
@@ -26,14 +39,14 @@ resource "azurerm_network_interface" "webserver_nic" {
 
 resource "azurerm_windows_virtual_machine" "webserver_vm" {
   for_each            = local.web_server_vnets
-  name                = "wsi-${substr(each.value, 0, 3)}-${element(split("-", each.value), length(split("-", each.value)) - 1)}"
+  name                = each.value
   location            = data.azurerm_resource_group.resource_group.location
   resource_group_name = data.azurerm_resource_group.resource_group.name
   size                = "Standard_D2s_v3"
   admin_username      = "adminuser"
-  admin_password      = var.router_password
+  admin_password      = azurerm_key_vault_secret.webserver_password[each.key].value
   network_interface_ids = [
-    azurerm_network_interface.webserver_nic[each.value].id,
+    azurerm_network_interface.webserver_nic[each.key].id,
   ]
 
   patch_mode = "AutomaticByPlatform"
@@ -64,7 +77,7 @@ resource "azurerm_network_security_group" "webserver_nsg" {
 
 resource "azurerm_network_interface_security_group_association" "webserver_nsg_assoc" {
   for_each                  = local.web_server_vnets
-  network_interface_id      = azurerm_network_interface.webserver_nic[each.value].id
+  network_interface_id      = azurerm_network_interface.webserver_nic[each.key].id
   network_security_group_id = azurerm_network_security_group.webserver_nsg[0].id
 }
 
@@ -90,7 +103,7 @@ resource "azurerm_network_security_rule" "http_windows" {
 resource "azurerm_virtual_machine_extension" "web_server_install" {
   for_each                   = local.web_server_vnets
   name                       = "configure-wsi"
-  virtual_machine_id         = azurerm_windows_virtual_machine.webserver_vm[each.value].id
+  virtual_machine_id         = azurerm_windows_virtual_machine.webserver_vm[each.key].id
   publisher                  = "Microsoft.Compute"
   type                       = "CustomScriptExtension"
   type_handler_version       = "1.9"
