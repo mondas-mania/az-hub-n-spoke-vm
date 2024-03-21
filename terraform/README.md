@@ -7,11 +7,12 @@ Deploying a simple Hub & Spoke network with a VM as a router.
 The below `.tfvars` will deploy four VNets:
 
 - A hub VNet `hub-vnet` using address space `10.0.0.0/22` with two subnets. One AzureBastionSubnet is used for a central bastion host that can connect to VMs in peered VNets and one regular subnet is used to house a Windows VM configured for transitive routing. This will be the hub of the hub and spoke network.
+  - This `hub-vnet` will include a NAT Gateway through which all outbound traffic in peered VNets will be routed out to the internet via the router VM.
 - An ingress VNet `ingress-vnet` using address space `10.0.4.0/22` with two private subnets and a dedicated subnet for an Application Gateway. This will house the Application Gateway which will point to web servers deployed in `internal-vnet-0` and `internal-vnet-1`. This is peered to and from `hub-vnet`.
 - An internal VNet `internal-vnet-0` using address space `10.0.8.0/22` with two regular subnets. This will house a single web server. This is peered to and from `hub-vnet`.
 - An internal VNet `internal-vnet-1` using address space `10.0.12.0/22` with two regular subnets. This will house a single web server. This is peered to and from `hub-vnet`.
 
-The non-hub VNets all have routes which will route their local traffic within themselves, and all other traffic towards `supernet_cidr_range` (`10.0.0.0/8`) will be routed towards the router VM in `hub-vnet`.
+The non-hub VNets all have routes which will route their local traffic within themselves, and all other traffic towards `supernet_cidr_range` (`10.0.0.0/8`) will be routed towards the router VM in `hub-vnet`. All other internet traffic will also be routed to the router VM in `hub-vnet` to be routed out through the NAT Gateway.
 
 The router VM will route traffic transitively into the relevant peered VNets, allowing for the app gateway in the ingress VNet to direct traffic towards the web servers in two separate internal VNets.
 
@@ -22,9 +23,10 @@ A diagram of this configuration is as below:
 ```
 resource_group_name = "Sandbox_RG"
 
-enable_router_vm       = true
-enable_central_bastion = true
-router_password        = "MyS@fePassw0rd"
+enable_router_vm          = true
+enable_central_bastion    = true
+enable_central_nat_gateay = true
+router_password           = "MyS@fePassw0rd"
 
 hub_cidr_range      = "10.0.0.0/22"
 supernet_cidr_range = "10.0.0.0/8"
@@ -32,10 +34,11 @@ supernet_cidr_range = "10.0.0.0/8"
 internal_vnets_config = {
 
   "ingress-vnet" = {
-    cidr_range     = "10.0.4.0/22"
-    num_subnets    = 3
-    deploy_wsi     = false
-    enable_bastion = false
+    cidr_range         = "10.0.4.0/22"
+    num_subnets        = 3
+    deploy_wsi         = false
+    enable_bastion     = false
+    enable_nat_gateway = false
 
     app_gw_config = {
       deploy_app_gw = true
