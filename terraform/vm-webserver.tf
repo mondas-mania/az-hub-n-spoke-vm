@@ -81,7 +81,7 @@ resource "azurerm_network_interface_security_group_association" "webserver_nsg_a
   network_security_group_id = azurerm_network_security_group.webserver_nsg[0].id
 }
 
-resource "azurerm_network_security_rule" "http_windows" {
+resource "azurerm_network_security_rule" "http_windows_inbound" {
   count                       = length(local.web_server_vnets) > 0 ? 1 : 0
   name                        = "HTTPInternalVNets"
   priority                    = 101
@@ -89,7 +89,23 @@ resource "azurerm_network_security_rule" "http_windows" {
   access                      = "Allow"
   protocol                    = "Tcp"
   source_port_range           = "*" # Azure portal recommends * for source port, filtering should be done at destination level
-  destination_port_range      = "80"
+  destination_port_ranges     = ["80", "443"]
+  source_address_prefix       = "10.0.0.0/8"
+  destination_address_prefix  = "*"
+  resource_group_name         = data.azurerm_resource_group.resource_group.name
+  network_security_group_name = azurerm_network_security_group.webserver_nsg[0].name
+}
+
+# trivy:ignore:AVD-AZU-0051
+resource "azurerm_network_security_rule" "http_windows_outbound" {
+  count                       = length(local.web_server_vnets) > 0 ? 1 : 0
+  name                        = "HTTPOutboundVNets"
+  priority                    = 101
+  direction                   = "Outbound"
+  access                      = "Allow"
+  protocol                    = "Tcp"
+  source_port_range           = "*" # Azure portal recommends * for source port, filtering should be done at destination level
+  destination_port_ranges     = ["80", "443"]
   source_address_prefix       = "10.0.0.0/8"
   destination_address_prefix  = "*"
   resource_group_name         = data.azurerm_resource_group.resource_group.name

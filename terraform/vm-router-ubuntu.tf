@@ -27,13 +27,14 @@ resource "azurerm_key_vault_secret" "linux_ssh_private_key" {
 # NIC #
 #######
 
-resource "azurerm_network_interface" "router_ubuntu_nic_primary" {
+# https://medium.com/contino-engineering/azure-egress-nat-with-linux-vm-595f6abd2f77
+resource "azurerm_network_interface" "router_ubuntu_nic_public" {
   count               = var.enable_router_vm ? 1 : 0
-  name                = "router-ubuntu-nic-primary"
+  name                = "router-ubuntu-nic-public"
   location            = data.azurerm_resource_group.resource_group.location
   resource_group_name = data.azurerm_resource_group.resource_group.name
 
-  enable_ip_forwarding = true
+  # enable_ip_forwarding = true
 
   ip_configuration {
     name                          = "public"
@@ -42,11 +43,13 @@ resource "azurerm_network_interface" "router_ubuntu_nic_primary" {
   }
 }
 
-resource "azurerm_network_interface" "router_ubuntu_nic_secondary" {
+resource "azurerm_network_interface" "router_ubuntu_nic_private" {
   count               = var.enable_router_vm ? 1 : 0
-  name                = "router-ubuntu-nic-secondary"
+  name                = "router-ubuntu-nic-private"
   location            = data.azurerm_resource_group.resource_group.location
   resource_group_name = data.azurerm_resource_group.resource_group.name
+
+  enable_ip_forwarding = true
 
   ip_configuration {
     name                          = "private"
@@ -67,9 +70,21 @@ resource "azurerm_linux_virtual_machine" "router_ubuntu_vm" {
   size                = "Standard_D2s_v3"
   admin_username      = "adminuser"
   network_interface_ids = [
-    azurerm_network_interface.router_ubuntu_nic_primary[0].id,
-    azurerm_network_interface.router_ubuntu_nic_secondary[0].id,
+    azurerm_network_interface.router_ubuntu_nic_public[0].id,  # eth0
+    azurerm_network_interface.router_ubuntu_nic_private[0].id, # eth1
   ]
+
+
+  # https://medium.com/contino-engineering/azure-egress-nat-with-linux-vm-595f6abd2f77
+  custom_data = base64encode(templatefile(
+    "${path.module}/scripts/ubuntu-routing.sh",
+    {
+      supernet          = var.supernet_cidr_range
+      default_gateway   = cidrhost(local.hub_subnets_config.subnets["hub-subnet-0"], 1) # https://learn.microsoft.com/en-us/azure/virtual-network/virtual-networks-faq#are-there-any-restrictions-on-using-ip-addresses-within-these-subnets
+      private_nic_ip    = azurerm_network_interface.router_ubuntu_nic_private[0].private_ip_address
+      azure_platform_ip = "168.63.129.16" # https://learn.microsoft.com/en-us/azure/virtual-network/what-is-ip-address-168-63-129-16
+    }
+  ))
 
   admin_ssh_key {
     username   = "adminuser"
@@ -102,33 +117,44 @@ resource "azurerm_network_security_group" "router_ubuntu_nsg" {
   resource_group_name = data.azurerm_resource_group.resource_group.name
 }
 
-resource "azurerm_network_interface_security_group_association" "router_ubuntu_primary_nsg_assoc" {
+resource "azurerm_network_security_rule" "http_router_inbound" {
+  count                       = var.enable_router_vm ? 1 : 0
+  name                        = "HTTPInboundRouter"
+  priority                    = 101
+  direction                   = "Inbound"
+  access                      = "Allow"
+  protocol                    = "Tcp"
+  source_port_range           = "*" # Azure portal recommends * for source port, filtering should be done at destination level
+  destination_port_ranges     = ["80", "443"]
+  source_address_prefix       = "10.0.0.0/8"
+  destination_address_prefix  = "*"
+  resource_group_name         = data.azurerm_resource_group.resource_group.name
+  network_security_group_name = azurerm_network_security_group.router_ubuntu_nsg[0].name
+}
+
+resource "azurerm_network_security_rule" "http_router_outbound" {
+  count                       = var.enable_router_vm ? 1 : 0
+  name                        = "HTTPOutboundRouter"
+  priority                    = 101
+  direction                   = "Outbound"
+  access                      = "Allow"
+  protocol                    = "Tcp"
+  source_port_range           = "*" # Azure portal recommends * for source port, filtering should be done at destination level
+  destination_port_ranges     = ["80", "443"]
+  source_address_prefix       = "10.0.0.0/8"
+  destination_address_prefix  = "*"
+  resource_group_name         = data.azurerm_resource_group.resource_group.name
+  network_security_group_name = azurerm_network_security_group.router_ubuntu_nsg[0].name
+}
+
+resource "azurerm_network_interface_security_group_association" "router_ubuntu_public_nsg_assoc" {
   count                     = var.enable_router_vm ? 1 : 0
-  network_interface_id      = azurerm_network_interface.router_ubuntu_nic_primary[0].id
+  network_interface_id      = azurerm_network_interface.router_ubuntu_nic_public[0].id
   network_security_group_id = azurerm_network_security_group.router_ubuntu_nsg[0].id
 }
 
-resource "azurerm_network_interface_security_group_association" "router_ubuntu_secondary_nsg_assoc" {
+resource "azurerm_network_interface_security_group_association" "router_ubuntu_private_nsg_assoc" {
   count                     = var.enable_router_vm ? 1 : 0
-  network_interface_id      = azurerm_network_interface.router_ubuntu_nic_secondary[0].id
+  network_interface_id      = azurerm_network_interface.router_ubuntu_nic_private[0].id
   network_security_group_id = azurerm_network_security_group.router_ubuntu_nsg[0].id
 }
-
-#####################
-# Configure Routing #
-#####################
-
-# resource "azurerm_virtual_machine_extension" "configure_routing" {
-#   count                = var.enable_router_vm ? 1 : 0
-#   name                 = "configure_routing"
-#   virtual_machine_id   = azurerm_windows_virtual_machine.router_vm[0].id
-#   publisher            = "Microsoft.Compute"
-#   type                 = "CustomScriptExtension"
-#   type_handler_version = "1.9"
-
-#   protected_settings = <<SETTINGS
-#   {
-#     "commandToExecute": "powershell -command \"Install-WindowsFeature RemoteAccess -IncludeManagementTools\" && powershell -command \"Install-WindowsFeature -Name Routing -IncludeManagementTools -IncludeAllSubFeature;Install-WindowsFeature -Name \"RSAT-RemoteAccess-Powershell\";Install-RemoteAccess -VpnType RoutingOnly;Get-NetAdapter | Set-NetIPInterface -Forwarding Enabled\""
-#   }
-#   SETTINGS
-# }
