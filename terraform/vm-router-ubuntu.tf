@@ -27,22 +27,6 @@ resource "azurerm_key_vault_secret" "linux_ssh_private_key" {
 # NIC #
 #######
 
-# https://medium.com/contino-engineering/azure-egress-nat-with-linux-vm-595f6abd2f77
-resource "azurerm_network_interface" "router_ubuntu_nic_public" {
-  count               = var.enable_router_vm ? 1 : 0
-  name                = "router-ubuntu-nic-public"
-  location            = data.azurerm_resource_group.resource_group.location
-  resource_group_name = data.azurerm_resource_group.resource_group.name
-
-  # enable_ip_forwarding = true
-
-  ip_configuration {
-    name                          = "public"
-    subnet_id                     = module.hub_vnet.vnet_subnets_name_id["hub-subnet-0"]
-    private_ip_address_allocation = "Dynamic"
-  }
-}
-
 resource "azurerm_network_interface" "router_ubuntu_nic_private" {
   count               = var.enable_router_vm ? 1 : 0
   name                = "router-ubuntu-nic-private"
@@ -70,21 +54,14 @@ resource "azurerm_linux_virtual_machine" "router_ubuntu_vm" {
   size                = "Standard_D2s_v3"
   admin_username      = "adminuser"
   network_interface_ids = [
-    azurerm_network_interface.router_ubuntu_nic_public[0].id,  # eth0
-    azurerm_network_interface.router_ubuntu_nic_private[0].id, # eth1
+    azurerm_network_interface.router_ubuntu_nic_private[0].id, # eth0
   ]
 
 
   # https://medium.com/contino-engineering/azure-egress-nat-with-linux-vm-595f6abd2f77
-  custom_data = base64encode(templatefile(
-    "${path.module}/scripts/ubuntu-routing.sh",
-    {
-      supernet          = var.supernet_cidr_range
-      default_gateway   = cidrhost(local.hub_subnets_config.subnets["hub-subnet-0"], 1) # https://learn.microsoft.com/en-us/azure/virtual-network/virtual-networks-faq#are-there-any-restrictions-on-using-ip-addresses-within-these-subnets
-      private_nic_ip    = azurerm_network_interface.router_ubuntu_nic_private[0].private_ip_address
-      azure_platform_ip = "168.63.129.16" # https://learn.microsoft.com/en-us/azure/virtual-network/what-is-ip-address-168-63-129-16
-    }
-  ))
+  # https://learn.microsoft.com/en-us/azure/nat-gateway/tutorial-hub-spoke-route-nat
+  # adapted both, ignoring the "public" network interface in the first link due to the NAT Gateway
+  custom_data = base64encode(file("${path.module}/scripts/ubuntu-routing.sh"))
 
   admin_ssh_key {
     username   = "adminuser"
@@ -145,12 +122,6 @@ resource "azurerm_network_security_rule" "http_router_outbound" {
   destination_address_prefix  = "*"
   resource_group_name         = data.azurerm_resource_group.resource_group.name
   network_security_group_name = azurerm_network_security_group.router_ubuntu_nsg[0].name
-}
-
-resource "azurerm_network_interface_security_group_association" "router_ubuntu_public_nsg_assoc" {
-  count                     = var.enable_router_vm ? 1 : 0
-  network_interface_id      = azurerm_network_interface.router_ubuntu_nic_public[0].id
-  network_security_group_id = azurerm_network_security_group.router_ubuntu_nsg[0].id
 }
 
 resource "azurerm_network_interface_security_group_association" "router_ubuntu_private_nsg_assoc" {
