@@ -5,7 +5,7 @@ locals {
     } if vnet_config.enable_nat_gw
   }
 
-  central_nat_gw = var.enable_central_nat_gateay ? {
+  central_nat_gw = var.enable_central_nat_gateway ? {
     "hub-vnet" = { for subnet_name, subnet_id in module.hub_vnet.vnet_subnets_name_id : subnet_name => subnet_id if subnet_name != "AzureBastionSubnet" }
   } : {}
 

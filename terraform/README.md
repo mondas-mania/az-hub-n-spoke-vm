@@ -25,7 +25,7 @@ resource_group_name = "Sandbox_RG"
 
 enable_router_vm          = true
 enable_central_bastion    = true
-enable_central_nat_gateay = true
+enable_central_nat_gateway = true
 router_password           = "MyS@fePassw0rd"
 
 hub_cidr_range      = "10.0.0.0/22"
@@ -132,7 +132,8 @@ internal_vnets_config = {
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_enable_central_bastion"></a> [enable\_central\_bastion](#input\_enable\_central\_bastion) | A boolean to determine whether to enable a Bastion host in the hub virtual network.<br>  This Bastion will be able to connect to VMs in any spoke VNet. | `bool` | `false` | no |
-| <a name="input_enable_central_nat_gateay"></a> [enable\_central\_nat\_gateay](#input\_enable\_central\_nat\_gateay) | A boolean to determine whether to create a NAT Gateway in the hub virtual network.<br>  This will be used by all spoke VNets without dedicated NAT Gateways. | `bool` | `false` | no |
+| <a name="input_enable_central_firewall"></a> [enable\_central\_firewall](#input\_enable\_central\_firewall) | A boolean to determine whether to create an Azure Firewall in the hub virtual network. | `bool` | `false` | no |
+| <a name="input_enable_central_nat_gateway"></a> [enable\_central\_nat\_gateway](#input\_enable\_central\_nat\_gateway) | A boolean to determine whether to create a NAT Gateway in the hub virtual network.<br>  This will be used by all spoke VNets without dedicated NAT Gateways. | `bool` | `false` | no |
 | <a name="input_enable_router_vm"></a> [enable\_router\_vm](#input\_enable\_router\_vm) | A boolean to determine whether to enable the Router VM in the Hub VNet. | `bool` | `false` | no |
 | <a name="input_hub_cidr_range"></a> [hub\_cidr\_range](#input\_hub\_cidr\_range) | The CIDR range to provision for the Hub VNet | `string` | `"10.0.0.0/22"` | no |
 | <a name="input_internal_vnets_config"></a> [internal\_vnets\_config](#input\_internal\_vnets\_config) | A map of configuration for internal VNets to deploy and connect to the hub. | <pre>map(object({<br>    cidr_range     = string<br>    num_subnets    = number<br>    deploy_wsi     = optional(bool, false)<br>    enable_bastion = optional(bool, false)<br>    enable_nat_gw  = optional(bool, false)<br>    app_gw_config = optional(object({<br>      deploy_app_gw = optional(bool, false)<br>      target_vnets  = optional(list(string), [])<br>    }), {})<br>  }))</pre> | n/a | yes |

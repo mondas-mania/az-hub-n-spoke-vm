@@ -55,10 +55,18 @@ variable "enable_central_bastion" {
   default     = false
 }
 
-variable "enable_central_nat_gateay" {
+variable "enable_central_nat_gateway" {
   description = <<EOT
   A boolean to determine whether to create a NAT Gateway in the hub virtual network.
   This will be used by all spoke VNets without dedicated NAT Gateways.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "enable_central_firewall" {
+  description = <<EOT
+  A boolean to determine whether to create an Azure Firewall in the hub virtual network.
   EOT
   type        = bool
   default     = false
