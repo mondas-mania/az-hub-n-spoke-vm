@@ -23,10 +23,10 @@ A diagram of this configuration is as below:
 ```
 resource_group_name = "Sandbox_RG"
 
-enable_router_vm          = true
-enable_central_bastion    = true
+enable_router_vm           = true
+enable_central_bastion     = true
 enable_central_nat_gateway = true
-router_password           = "MyS@fePassw0rd"
+router_password            = "MyS@fePassw0rd"
 
 hub_cidr_range      = "10.0.0.0/22"
 supernet_cidr_range = "10.0.0.0/8"
@@ -92,6 +92,7 @@ internal_vnets_config = {
 |------|------|
 | [azurerm_application_gateway.application_gateway](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/application_gateway) | resource |
 | [azurerm_bastion_host.bastion_host](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/bastion_host) | resource |
+| [azurerm_firewall.firewall](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/firewall) | resource |
 | [azurerm_firewall_policy.firewall_policy](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/firewall_policy) | resource |
 | [azurerm_key_vault.vm_key_vault](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/key_vault) | resource |
 | [azurerm_key_vault_secret.linux_ssh_private_key](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/key_vault_secret) | resource |
