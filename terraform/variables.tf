@@ -10,6 +10,7 @@ variable "internal_vnets_config" {
     num_subnets    = number
     deploy_wsi     = optional(bool, false)
     enable_bastion = optional(bool, false)
+    enable_nat_gw  = optional(bool, false)
     app_gw_config = optional(object({
       deploy_app_gw = optional(bool, false)
       target_vnets  = optional(list(string), [])
@@ -49,6 +50,15 @@ variable "enable_central_bastion" {
   description = <<EOT
   A boolean to determine whether to enable a Bastion host in the hub virtual network.
   This Bastion will be able to connect to VMs in any spoke VNet.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "enable_central_nat_gateay" {
+  description = <<EOT
+  A boolean to determine whether to create a NAT Gateway in the hub virtual network.
+  This will be used by all spoke VNets without dedicated NAT Gateways.
   EOT
   type        = bool
   default     = false
