@@ -6,7 +6,11 @@ locals {
   }
 
   central_nat_gw = var.enable_central_nat_gateway ? {
-    "hub-vnet" = { for subnet_name, subnet_id in module.hub_vnet.vnet_subnets_name_id : subnet_name => subnet_id if subnet_name != "AzureBastionSubnet" }
+    "hub-vnet" = var.enable_central_firewall ? {
+      "AzureFirewallSubnet" : module.hub_vnet.vnet_subnets_name_id["AzureFirewallSubnet"]
+      } : {
+      "hub-subnet-0" : module.hub_vnet.vnet_subnets_name_id["hub-subnet-0"]
+    }
   } : {}
 
   nat_gws = merge(local.spoke_nat_gws, local.central_nat_gw)

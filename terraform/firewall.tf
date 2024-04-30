@@ -3,7 +3,13 @@
 # 4. make sure central nat gateway will only attach to firewall subnet if enabled
 # 5. make sure routing goes towards firewall - how will this work?
 #  - https://learn.microsoft.com/en-us/azure/nat-gateway/tutorial-hub-spoke-nat-firewall#configure-network-rule
-# 6. is there benefit in parameterising the SKU? premium SKU allows for easier testing bc of specific url filtering
+# 6. use application firewall rules to only allow google.com
+# testing:
+# - box to box
+# - box to internet
+# - router to internet
+# - router to box
+# opt. is there benefit in parameterising the SKU? premium SKU allows for easier testing bc of specific url filtering
 
 locals {
 
@@ -39,5 +45,61 @@ resource "azurerm_firewall" "firewall" {
     name                 = "configuration"
     subnet_id            = module.hub_vnet.vnet_subnets_name_id["AzureFirewallSubnet"]
     public_ip_address_id = azurerm_public_ip.firewall_pip[0].id
+  }
+}
+
+resource "azurerm_firewall_policy_rule_collection_group" "firewall_policy_rule_collection" {
+  count              = var.enable_central_firewall ? 1 : 0
+  name               = "firewall-policy-rule-collection"
+  firewall_policy_id = azurerm_firewall_policy.firewall_policy[0].id
+  priority           = 500
+  application_rule_collection {
+    name     = "allow_urls"
+    priority = 500
+    action   = "Allow"
+    rule {
+      name = "allow_google"
+      protocols {
+        type = "Https"
+        port = 443
+      }
+
+      protocols {
+        type = "Http"
+        port = 80
+      }
+      source_addresses  = [var.supernet_cidr_range]
+      destination_fqdns = ["*.google.com"]
+    }
+
+    rule {
+      name = "allow_windows_update_servers"
+      # https://learn.microsoft.com/en-us/windows-server/administration/windows-server-update-services/deploy/2-configure-wsus#211-configure-your-firewall-to-allow-your-first-wsus-server-to-connect-to-microsoft-domains-on-the-internet
+      # required to install WSI on the spoke VMs
+      protocols {
+        type = "Https"
+        port = 443
+      }
+
+      protocols {
+        type = "Http"
+        port = 80
+      }
+      source_addresses = [var.supernet_cidr_range]
+      destination_fqdns = [
+        "windowsupdate.microsoft.com",
+        "*.windowsupdate.microsoft.com",
+        "*.update.microsoft.com",
+        "*.windowsupdate.com",
+        "download.windowsupdate.com",
+        "download.microsoft.com",
+        "*.download.windowsupdate.com",
+        "wustat.windows.com",
+        "ntservicepack.microsoft.com",
+        "go.microsoft.com",
+        "dl.delivery.mp.microsoft.com",
+        "*.delivery.mp.microsoft.com",
+      ]
+    }
   }
 }
