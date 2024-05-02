@@ -1,30 +1,4 @@
 repos:
-  # - repo: https://github.com/antonbabenko/pre-commit-terraform
-  #   rev: v1.89.0
-  #   hooks:
-  #     # Creates Documentation based on Terraform Outputs and Variables
-  #     # Requires Terraform-Docs (github.com/terraform-docs/terraform-docs)
-  #     - id: terraform_docs
-  #       args: [--args=--lockfile=false]
-  #     # Check that code is formatted to `terraform fmt` canonical style
-  #     - id: terraform_fmt
-  #     # Lint code using `tflint` to ensure it matches the correct style
-  #     - id: terraform_tflint
-  #       args: [--args=--config=__GIT_WORKING_DIR__/.tflint.hcl]
-  #     # Runs `trivy` (formerly `tfsec`) to check for known security misconfigurations
-  #     # Skips example configurations found in terraform-aws-modules
-  #     - id: terraform_trivy
-  #     # Runs `terraform validate` to check for valid Terraform code
-  #     - id: terraform_validate
-  #       exclude: 'terraform/modules/'
-  #     # Runs `terraform providers lock` to add standard Linux & Mac checksums to tflock file
-  #     - id: terraform_providers_lock
-  #       args:
-  #       - --hook-config=--mode=only-check-is-current-lockfile-cross-platform
-  #       - --args=-platform=linux_amd64
-  #       - --args=-platform=darwin_amd64
-  #       - --args=-platform=windows_amd64
-
   - repo: https://github.com/tofuutils/pre-commit-opentofu
     rev: v1.0.2
     hooks:
