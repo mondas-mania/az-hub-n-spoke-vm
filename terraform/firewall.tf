@@ -1,7 +1,6 @@
 # to do
 # https://learn.microsoft.com/en-us/azure/nat-gateway/tutorial-hub-spoke-nat-firewall#configure-network-rule
 # - is there benefit in parameterising the SKU? premium SKU allows for easier testing bc of specific url filtering
-# - update diagram to show new subnet and Firewall !!!!
 
 resource "azurerm_public_ip" "firewall_pip" {
   count               = var.enable_central_firewall ? 1 : 0
