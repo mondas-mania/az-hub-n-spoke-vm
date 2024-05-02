@@ -1,19 +1,7 @@
 # to do
-# 3. create Basic or Standard firewall resource (which can do fqdn filtering)
-# 4. make sure central nat gateway will only attach to firewall subnet if enabled
-# 5. make sure routing goes towards firewall - how will this work?
-#  - https://learn.microsoft.com/en-us/azure/nat-gateway/tutorial-hub-spoke-nat-firewall#configure-network-rule
-# 6. use application firewall rules to only allow google.com
-# testing:
-# - box to box
-# - box to internet
-# - router to internet
-# - router to box
-# opt. is there benefit in parameterising the SKU? premium SKU allows for easier testing bc of specific url filtering
-
-locals {
-
-}
+# https://learn.microsoft.com/en-us/azure/nat-gateway/tutorial-hub-spoke-nat-firewall#configure-network-rule
+# - is there benefit in parameterising the SKU? premium SKU allows for easier testing bc of specific url filtering
+# - update diagram to show new subnet and Firewall !!!!
 
 resource "azurerm_public_ip" "firewall_pip" {
   count               = var.enable_central_firewall ? 1 : 0
@@ -68,8 +56,29 @@ resource "azurerm_firewall_policy_rule_collection_group" "firewall_policy_rule_c
         type = "Http"
         port = 80
       }
-      source_addresses  = [var.supernet_cidr_range]
-      destination_fqdns = ["*.google.com"]
+      source_addresses = [var.supernet_cidr_range]
+      destination_fqdns = [
+        "*.google.com",
+        "google.com"
+      ]
+    }
+
+    rule {
+      name = "allow_ifconfig_me"
+      protocols {
+        type = "Https"
+        port = 443
+      }
+
+      protocols {
+        type = "Http"
+        port = 80
+      }
+      source_addresses = [var.supernet_cidr_range]
+      destination_fqdns = [
+        "*.ifconfig.me",
+        "ifconfig.me"
+      ]
     }
 
     rule {
