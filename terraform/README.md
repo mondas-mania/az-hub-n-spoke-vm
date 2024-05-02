@@ -6,13 +6,14 @@ Deploying a simple Hub & Spoke network with a VM as a router.
 
 The below `.tfvars` will deploy four VNets:
 
-- A hub VNet `hub-vnet` using address space `10.0.0.0/22` with two subnets. One AzureBastionSubnet is used for a central bastion host that can connect to VMs in peered VNets and one regular subnet is used to house a Windows VM configured for transitive routing. This will be the hub of the hub and spoke network.
-  - This `hub-vnet` will include a NAT Gateway through which all outbound traffic in peered VNets will be routed out to the internet via the router VM.
+- A hub VNet `hub-vnet` using address space `10.0.0.0/22` with three subnets. One AzureBastionSubnet is used for a central bastion host that can connect to VMs in peered VNets. One AzureFirewallSubnet has an attached NAT Gateway and is used for all outbound traffic through a Standard Azure Firewall. And one regular subnet is used to house a Windows VM configured for transitive routing. This will be the hub of the hub and spoke network.
+  - Traffic from the Spoke VNets gets sent to the router VM, which will direct all outbound internet traffic to the Firewall's private IP to allow/block traffic out to the internet, sending approved traffic out through the NAT Gateway.
+  - Any internal traffic will be routed to the appropriate VNets without passing through the Firewall or NAT Gateway.
 - An ingress VNet `ingress-vnet` using address space `10.0.4.0/22` with two private subnets and a dedicated subnet for an Application Gateway. This will house the Application Gateway which will point to web servers deployed in `internal-vnet-0` and `internal-vnet-1`. This is peered to and from `hub-vnet`.
 - An internal VNet `internal-vnet-0` using address space `10.0.8.0/22` with two regular subnets. This will house a single web server. This is peered to and from `hub-vnet`.
 - An internal VNet `internal-vnet-1` using address space `10.0.12.0/22` with two regular subnets. This will house a single web server. This is peered to and from `hub-vnet`.
 
-The non-hub VNets all have routes which will route their local traffic within themselves, and all other traffic towards `supernet_cidr_range` (`10.0.0.0/8`) will be routed towards the router VM in `hub-vnet`. All other internet traffic will also be routed to the router VM in `hub-vnet` to be routed out through the NAT Gateway.
+The non-hub VNets all have routes which will route their local traffic within themselves, and all other traffic towards `supernet_cidr_range` (`10.0.0.0/8`) will be routed towards the router VM in `hub-vnet`. All other internet traffic will also be routed to the router VM in `hub-vnet` to be routed out through the Firewall and NAT Gateway.
 
 The router VM will route traffic transitively into the relevant peered VNets, allowing for the app gateway in the ingress VNet to direct traffic towards the web servers in two separate internal VNets.
 
@@ -23,10 +24,11 @@ A diagram of this configuration is as below:
 ```
 resource_group_name = "Sandbox_RG"
 
-enable_router_vm          = true
-enable_central_bastion    = true
-enable_central_nat_gateay = true
-router_password           = "MyS@fePassw0rd"
+enable_router_vm           = true
+enable_central_bastion     = true
+enable_central_firewall    = true
+enable_central_nat_gateway = true
+router_password            = "MyS@fePassw0rd"
 
 hub_cidr_range      = "10.0.0.0/22"
 supernet_cidr_range = "10.0.0.0/8"
@@ -92,6 +94,8 @@ internal_vnets_config = {
 |------|------|
 | [azurerm_application_gateway.application_gateway](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/application_gateway) | resource |
 | [azurerm_bastion_host.bastion_host](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/bastion_host) | resource |
+| [azurerm_firewall.firewall](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/firewall) | resource |
+| [azurerm_firewall_policy.firewall_policy](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/firewall_policy) | resource |
 | [azurerm_key_vault.vm_key_vault](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/key_vault) | resource |
 | [azurerm_key_vault_secret.linux_ssh_private_key](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/key_vault_secret) | resource |
 | [azurerm_key_vault_secret.webserver_password](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/key_vault_secret) | resource |
@@ -110,6 +114,7 @@ internal_vnets_config = {
 | [azurerm_network_security_rule.http_windows_outbound](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/network_security_rule) | resource |
 | [azurerm_public_ip.app_gateway_pip](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/public_ip) | resource |
 | [azurerm_public_ip.bastion_pip](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/public_ip) | resource |
+| [azurerm_public_ip.firewall_pip](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/public_ip) | resource |
 | [azurerm_public_ip.nat_gw_pip](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/public_ip) | resource |
 | [azurerm_route.spoke_to_hub](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/route) | resource |
 | [azurerm_route.spoke_to_local](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/route) | resource |
@@ -132,7 +137,8 @@ internal_vnets_config = {
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_enable_central_bastion"></a> [enable\_central\_bastion](#input\_enable\_central\_bastion) | A boolean to determine whether to enable a Bastion host in the hub virtual network.<br>  This Bastion will be able to connect to VMs in any spoke VNet. | `bool` | `false` | no |
-| <a name="input_enable_central_nat_gateay"></a> [enable\_central\_nat\_gateay](#input\_enable\_central\_nat\_gateay) | A boolean to determine whether to create a NAT Gateway in the hub virtual network.<br>  This will be used by all spoke VNets without dedicated NAT Gateways. | `bool` | `false` | no |
+| <a name="input_enable_central_firewall"></a> [enable\_central\_firewall](#input\_enable\_central\_firewall) | A boolean to determine whether to create an Azure Firewall in the hub virtual network. | `bool` | `false` | no |
+| <a name="input_enable_central_nat_gateway"></a> [enable\_central\_nat\_gateway](#input\_enable\_central\_nat\_gateway) | A boolean to determine whether to create a NAT Gateway in the hub virtual network.<br>  This will be used by all spoke VNets without dedicated NAT Gateways. | `bool` | `false` | no |
 | <a name="input_enable_router_vm"></a> [enable\_router\_vm](#input\_enable\_router\_vm) | A boolean to determine whether to enable the Router VM in the Hub VNet. | `bool` | `false` | no |
 | <a name="input_hub_cidr_range"></a> [hub\_cidr\_range](#input\_hub\_cidr\_range) | The CIDR range to provision for the Hub VNet | `string` | `"10.0.0.0/22"` | no |
 | <a name="input_internal_vnets_config"></a> [internal\_vnets\_config](#input\_internal\_vnets\_config) | A map of configuration for internal VNets to deploy and connect to the hub. | <pre>map(object({<br>    cidr_range     = string<br>    num_subnets    = number<br>    deploy_wsi     = optional(bool, false)<br>    enable_bastion = optional(bool, false)<br>    enable_nat_gw  = optional(bool, false)<br>    app_gw_config = optional(object({<br>      deploy_app_gw = optional(bool, false)<br>      target_vnets  = optional(list(string), [])<br>    }), {})<br>  }))</pre> | n/a | yes |
