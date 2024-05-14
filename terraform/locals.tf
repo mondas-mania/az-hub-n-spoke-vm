@@ -8,6 +8,7 @@ locals {
         internal_vnet.enable_bastion ? { "AzureBastionSubnet" = cidrsubnet(internal_vnet.cidr_range, ceil(log(internal_vnet.num_subnets + 2, 2)), pow(2, ceil(log(internal_vnet.num_subnets + 2, 2))) - 1) } : {},
         internal_vnet.app_gw_config.deploy_app_gw ? { "AppGWSubnet" = cidrsubnet(internal_vnet.cidr_range, ceil(log(internal_vnet.num_subnets + 2, 2)), pow(2, ceil(log(internal_vnet.num_subnets + 2, 2))) - 2) } : {}
       )
+      service_endpoints = internal_vnet.service_endpoints
     }
   }
 
