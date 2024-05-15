@@ -3,9 +3,9 @@
 
 config {
   # Enable lint checks against Terraform Modules
-  module     = true
+  call_module_type = "local"
   # Disables forcing a 0 return code on finding errors
-  force      = false
+  force = false
 }
 
 # Enforce the standardised Terraform naming convention

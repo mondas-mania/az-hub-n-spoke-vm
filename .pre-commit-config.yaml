@@ -10,13 +10,13 @@ repos:
       - id: tofu_fmt
       # Lint code using `tflint` to ensure it matches the correct style
       - id: tofu_tflint
-        args: [--args=--config=__GIT_WORKING_DIR__/.tflint.hcl]
+        args: [--args=--config=__GIT_WORKING_DIR__.tflint.hcl]
       # Runs `trivy` (formerly `tfsec`) to check for known security misconfigurations
       # Skips example configurations found in terraform-aws-modules
       - id: tofu_trivy
       # Runs `terraform validate` to check for valid Terraform code
       - id: tofu_validate
-        exclude: 'terraform/modules/'
+        exclude: 'terraform/[^/]+modules/'
       # Runs `terraform providers lock` to add standard Linux & Mac checksums to tflock file
       - id: tofu_providers_lock
         args:
