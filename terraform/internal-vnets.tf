@@ -14,4 +14,5 @@ module "spoke_vnet" {
   subnet_prefixes = [for name, prefix in each.value.subnets : prefix]
 
   subnet_service_endpoints = { for name, prefix in each.value.subnets : name => each.value.service_endpoints if name != "AzureBastionSubnet" }
+  subnet_delegation        = each.value.subnet_delegation
 }
