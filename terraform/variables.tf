@@ -12,6 +12,10 @@ variable "internal_vnets_config" {
     enable_bastion    = optional(bool, false)
     enable_nat_gw     = optional(bool, false)
     service_endpoints = optional(list(string), [])
+    subnet_delegation = optional(map(map(object({
+      service_name    = string
+      service_actions = list(string)
+    }))), {})
 
     app_gw_config = optional(object({
       deploy_app_gw = optional(bool, false)

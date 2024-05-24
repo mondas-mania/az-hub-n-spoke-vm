@@ -10,8 +10,9 @@ The below `.tfvars` will deploy four VNets:
   - Traffic from the Spoke VNets gets sent to the router VM, which will direct all outbound internet traffic to the Firewall's private IP to allow/block traffic out to the internet, sending approved traffic out through the NAT Gateway.
   - Any internal traffic will be routed to the appropriate VNets without passing through the Firewall or NAT Gateway.
 - An ingress VNet `ingress-vnet` using address space `10.0.4.0/22` with two private subnets and a dedicated subnet for an Application Gateway. This will house the Application Gateway which will point to web servers deployed in `internal-vnet-0` and `internal-vnet-1`. This is peered to and from `hub-vnet`.
-- An internal VNet `internal-vnet-0` using address space `10.0.8.0/22` with two regular subnets. This will house a single web server. This is peered to and from `hub-vnet`.
-- An internal VNet `internal-vnet-1` using address space `10.0.12.0/22` with two regular subnets. This will house a single web server. This is peered to and from `hub-vnet`.
+- An internal VNet `internal-vnet-0` using address space `10.0.8.0/22` with two regular subnets. This will house a single web server. This is peered to and from `hub-vnet`. Each of the two regular subnets will have a Service Endpoint for Azure Container Registry (`Microsoft.ContainerRegistry`).
+  - Note that Service Endpoints are outdated in the face of private endpoints, so are likely to eventually become deprecated. They are included here due to being cheaper and easier to use in the short term so are useful for experiments. Private Endpoints can be deployed separately in other repositories.
+- An internal VNet `internal-vnet-1` using address space `10.0.12.0/22` with two regular subnets. This will house a single web server. This is peered to and from `hub-vnet`. The second subnet, "private-subnet-1", will be delegated to the Azure Container Instances service (`Microsoft.ContainerInstance/containerGroups`) allowing Container Instances to be deployed into the subnet.
 
 The non-hub VNets all have routes which will route their local traffic within themselves, and all other traffic towards `supernet_cidr_range` (`10.0.0.0/8`) will be routed towards the router VM in `hub-vnet`. All other internet traffic will also be routed to the router VM in `hub-vnet` to be routed out through the Firewall and NAT Gateway.
 
@@ -49,16 +50,28 @@ internal_vnets_config = {
   }
 
   "internal-vnet-0" = {
-    cidr_range     = "10.0.8.0/22"
-    num_subnets    = 2
-    deploy_wsi     = true
-    enable_bastion = false
+    cidr_range        = "10.0.8.0/22"
+    num_subnets       = 2
+    deploy_wsi        = true
+    enable_bastion    = false
+    service_endpoints = ["Microsoft.ContainerRegistry"]
   }
 
   "internal-vnet-1" = {
     cidr_range  = "10.0.12.0/22"
     num_subnets = 2
     deploy_wsi  = true
+
+    subnet_delegation = {
+      "private-subnet-1" = {
+        "Microsoft.ContainerInstance/containerGroups" = {
+          service_name = "Microsoft.ContainerInstance/containerGroups"
+          service_actions = [
+            "Microsoft.Network/virtualNetworks/subnets/action"
+          ]
+        }
+      }
+    }
   }
 }
 ```
@@ -145,7 +158,7 @@ internal_vnets_config = {
 | <a name="input_enable_central_nat_gateway"></a> [enable\_central\_nat\_gateway](#input\_enable\_central\_nat\_gateway) | A boolean to determine whether to create a NAT Gateway in the hub virtual network.<br>  This will be used by all spoke VNets without dedicated NAT Gateways. | `bool` | `false` | no |
 | <a name="input_enable_router_vm"></a> [enable\_router\_vm](#input\_enable\_router\_vm) | A boolean to determine whether to enable the Router VM in the Hub VNet. | `bool` | `false` | no |
 | <a name="input_hub_cidr_range"></a> [hub\_cidr\_range](#input\_hub\_cidr\_range) | The CIDR range to provision for the Hub VNet | `string` | `"10.0.0.0/22"` | no |
-| <a name="input_internal_vnets_config"></a> [internal\_vnets\_config](#input\_internal\_vnets\_config) | A map of configuration for internal VNets to deploy and connect to the hub. | <pre>map(object({<br>    cidr_range        = string<br>    num_subnets       = number<br>    deploy_wsi        = optional(bool, false)<br>    enable_bastion    = optional(bool, false)<br>    enable_nat_gw     = optional(bool, false)<br>    service_endpoints = optional(list(string), [])<br><br>    app_gw_config = optional(object({<br>      deploy_app_gw = optional(bool, false)<br>      target_vnets  = optional(list(string), [])<br>    }), {})<br>  }))</pre> | n/a | yes |
+| <a name="input_internal_vnets_config"></a> [internal\_vnets\_config](#input\_internal\_vnets\_config) | A map of configuration for internal VNets to deploy and connect to the hub. | <pre>map(object({<br>    cidr_range        = string<br>    num_subnets       = number<br>    deploy_wsi        = optional(bool, false)<br>    enable_bastion    = optional(bool, false)<br>    enable_nat_gw     = optional(bool, false)<br>    service_endpoints = optional(list(string), [])<br>    subnet_delegation = optional(map(map(object({<br>      service_name    = string<br>      service_actions = list(string)<br>    }))), {})<br><br>    app_gw_config = optional(object({<br>      deploy_app_gw = optional(bool, false)<br>      target_vnets  = optional(list(string), [])<br>    }), {})<br>  }))</pre> | n/a | yes |
 | <a name="input_resource_group_name"></a> [resource\_group\_name](#input\_resource\_group\_name) | The name of the resource group to deploy to. | `string` | n/a | yes |
 | <a name="input_router_password"></a> [router\_password](#input\_router\_password) | The password for the Router VM. May be stored as plain text in the state. | `string` | `null` | no |
 | <a name="input_supernet_cidr_range"></a> [supernet\_cidr\_range](#input\_supernet\_cidr\_range) | The \"supernet\" cidr range that will be used to define routes through the hub.<br>  This should cover all of your VNet address spaces. Defaults to 10.0.0.0/8. | `string` | `"10.0.0.0/8"` | no |
